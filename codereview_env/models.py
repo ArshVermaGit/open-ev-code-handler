@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import List, Optional, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 class TaskId(str, Enum):
     BUG_DETECTION = "bug_detection"
@@ -72,6 +72,20 @@ class Action(BaseModel):
     category: Optional[Category] = None
     severity: Optional[Severity] = None
     verdict: Optional[Verdict] = None
+
+    @model_validator(mode="after")
+    def validate_action_fields(self) -> "Action":
+        if self.action_type == ActionType.FLAG_ISSUE:
+            if not self.body or not self.filename or self.line_number is None:
+                raise ValueError("flag_issue requires body, filename, and line_number")
+            if not self.category or not self.severity:
+                raise ValueError("flag_issue requires category and severity")
+        elif self.action_type in (ActionType.APPROVE, ActionType.REQUEST_CHANGES):
+            if not self.verdict:
+                raise ValueError(f"{self.action_type.value} action requires a verdict")
+            if not self.body:
+                raise ValueError(f"{self.action_type.value} action requires a body summary")
+        return self
 
 class ActionRecord(BaseModel):
     """Immutable record of a step taken — stored in episode history."""

@@ -810,7 +810,7 @@ arch_003 = Scenario(
             line_number=2,
             description="Tight coupling: service depends on concrete implementation instead of abstraction",
             keywords=["tight coupling", "dependency injection"],
-            required_verdict=Verdict.NEEDS_DISCUSSION
+            required_verdict=Verdict.REQUEST_CHANGES
         )
     ],
     hash="arch_003",
@@ -881,7 +881,7 @@ arch_005 = Scenario(
             line_number=6,
             description="Missing resilience (retry, timeout, circuit breaker) on external API dependency",
             keywords=["retry", "resilience"],
-            required_verdict=Verdict.NEEDS_DISCUSSION
+            required_verdict=Verdict.REQUEST_CHANGES
         )
     ],
     hash="arch_005",
@@ -984,7 +984,7 @@ arch_008 = Scenario(
             line_number=2,
             description="Secret leaked in code comment; should be in environment variables only",
             keywords=["secret", "comment"],
-            required_verdict=Verdict.NEEDS_DISCUSSION
+            required_verdict=Verdict.REQUEST_CHANGES
         )
     ],
     hash="arch_008",

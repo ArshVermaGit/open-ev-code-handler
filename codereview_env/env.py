@@ -49,8 +49,8 @@ class CodeReviewEnv:
         s = self._state
         s["step_count"] += 1
 
-        # Record action in history
-        s["history"].append(ActionRecord(
+        # Record action in history (reward will be updated after calculation)
+        record = ActionRecord(
             action_type=action.action_type,
             body=action.body,
             filename=action.filename,
@@ -58,13 +58,18 @@ class CodeReviewEnv:
             severity=action.severity,
             category=action.category,
             verdict=action.verdict,
+            reward=0.0,
             timestamp=datetime.now(timezone.utc).isoformat()
-        ))
+        )
+        s["history"].append(record)
 
         # Apply action logic and compute incremental reward delta
         prev_score    = s["running_score"]
         reward_delta  = self._apply_action(action)
         s["running_score"] = prev_score + reward_delta
+
+        # Update the history record with the actual reward
+        record.reward = round(reward_delta, 4)
 
         # Check termination
         s["done"] = (
@@ -150,13 +155,13 @@ class CodeReviewEnv:
         missed_ids = list(all_gt_ids - s["issues_found"])
         final_score = self._grade(sc, s)
 
-        terminated_reason = "max_steps"
+        terminated_reason = ""
         if s["done"]:
             if s["noise_budget"] <= 0:
                 terminated_reason = "noise_exhausted"
-            elif s["history"][-1].action_type in (ActionType.APPROVE, ActionType.REQUEST_CHANGES):
+            elif s["history"] and s["history"][-1].action_type in (ActionType.APPROVE, ActionType.REQUEST_CHANGES):
                 terminated_reason = "terminal_action"
-            elif s["step_count"] >= s["max_steps"]:
+            else:
                 terminated_reason = "max_steps"
 
         return EpisodeResult(
