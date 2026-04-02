@@ -404,7 +404,7 @@ sec_002 = Scenario(
 +++ b/payments/webhook.py
 @@ -5,1 +5,1 @@
 -stripe_secret = os.getenv("STRIPE_SECRET")
-+SECRET_KEY = "sk_live_abc123XYZ" """,
++SECRET_KEY = "sk_live_dummy_secret_key_for_testing_12345" """,
             additions=1,
             deletions=1,
         )
