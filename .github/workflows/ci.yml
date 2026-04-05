@@ -90,9 +90,20 @@ jobs:
       - name: Test container health
         run: |
           docker run -d --name test-container -p 7860:7860 codelens-env:ci-${{ github.sha }}
-          sleep 10
-          curl -f http://localhost:7860/health
+          # Poll the /health endpoint with retries
+          for i in {1..15}; do
+            if curl -s -f http://localhost:7860/health > /dev/null; then
+              echo "Health check passed!"
+              docker stop test-container
+              exit 0
+            fi
+            echo "Waiting for app to start... (retry $i/15)"
+            sleep 2
+          done
+          echo "Health check FAILED. Showing container logs:"
+          docker logs test-container
           docker stop test-container
+          exit 1
 
   # ── Job 5: Publish (on main push only) ────────────────────────
   publish:
