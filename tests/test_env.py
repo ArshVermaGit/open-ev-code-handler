@@ -27,7 +27,14 @@ def test_env_reset_populates_blast_radius():
     assert obs.step_count == 0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+def test_env_state():
+    """Test the python interface state method."""
+    env = CodeLensEnv()
+    res = env.reset(TaskId.BUG_DETECTION, seed=0)
+    state_obs = env.state()
+    assert state_obs.task_id == TaskId.BUG_DETECTION
+    assert state_obs.step_count == 0
+    assert state_obs.noise_budget == 5# ─────────────────────────────────────────────────────────────────────────────
 # Step tests
 # ─────────────────────────────────────────────────────────────────────────────
 

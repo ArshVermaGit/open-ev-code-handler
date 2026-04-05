@@ -106,6 +106,22 @@ def test_api_full_workflow_all_tasks(client, task_id):
     assert step.status_code == 200
     assert step.json()["done"] is True
 
+def test_api_state_endpoint(client):
+    reset = client.post("/reset", json={"task_id": "bug_detection", "seed": 1})
+    episode_id = reset.json()["episode_id"]
+
+    # Test state retrieval
+    state_resp = client.get(f"/state/{episode_id}")
+    assert state_resp.status_code == 200
+    state_data = state_resp.json()
+    assert "observation" not in state_data # Pydantic model unwrapped
+    assert state_data["task_id"] == "bug_detection"
+    assert "max_steps" in state_data
+    
+    # Test invalid state
+    invalid_state = client.get("/state/invalid-id")
+    assert invalid_state.status_code == 404
+
 def test_api_leaderboard_pagination(client):
     # Submit 3 entries
     for i, score in enumerate([0.9, 0.7, 0.5]):
