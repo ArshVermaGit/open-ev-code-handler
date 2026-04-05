@@ -42,9 +42,13 @@ logger = logging.getLogger("codelens_env")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    create_db_and_tables()
+    if not os.getenv("TESTING"):
+        create_db_and_tables()
+        logger.info(f"CodeLens API started — DB at {settings.db_path}")
+    else:
+        logger.info("CodeLens API running in TESTING mode — DB initialization skipped")
+
     cleanup_task = asyncio.create_task(cleanup_expired_episodes())
-    logger.info(f"CodeLens API started — DB at {settings.db_path}")
     
     yield
     
@@ -68,7 +72,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS Middleware ───────────────────────────────────────────────────────────
+# ── Security & Middleware ──────────────────────────────────────────────────
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+# 1. Trusted Host (Prevent Host-header injection)
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=["*"] if settings.app_env in ("development", "test") else [f"localhost", "127.0.0.1", "*.github.io", "testserver"] 
+)
+
+# 2. Proxy Headers (Support Docker/Reverse-proxy)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+# 3. CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if settings.app_env == "development" else [f"http://localhost:{settings.app_port}"],
@@ -77,7 +94,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Rate Limiting ─────────────────────────────────────────────────────────────
+# 4. Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:;"
+    return response
+
+# 5. Rate Limiting
 limiter = Limiter(key_func=get_remote_address, default_limits=[f"{settings.rate_limit_per_minute}/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
