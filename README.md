@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" width="400" alt="CodeLens." />
+  <img src="assets/codelens-brand-v2.svg" width="400" alt="CodeLens." />
 </p>
 
 # CodeLens
