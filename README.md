@@ -40,46 +40,50 @@ PYTHONPATH=. python app.py
 
 CodeLens benchmarks agents across three critical engineering domains:
 
-| Task | Scenarios | Max Steps | Focus Area |
-|------|-----------|-----------|------------|
-| `bug_detection` | 10 | 10 | Off-by-one errors, null dereferences, race conditions, exception handling |
-| `security_audit` | 10 | 15 | SQL injection, hardcoded secrets, path traversal, insecure deserialization |
-| `architectural_review` | 10 | 20 | N+1 queries, god classes, blocking async calls, circular imports |
+| Task                   | Scenarios | Max Steps | Focus Area                                                                 |
+| ---------------------- | --------- | --------- | -------------------------------------------------------------------------- |
+| `bug_detection`        | 10        | 10        | Off-by-one errors, null dereferences, race conditions, exception handling  |
+| `security_audit`       | 10        | 15        | SQL injection, hardcoded secrets, path traversal, insecure deserialization |
+| `architectural_review` | 10        | 20        | N+1 queries, god classes, blocking async calls, circular imports           |
 
 ---
 
 ## 📈 Scoring System
 
 ### Bug Detection
+
 Score = `0.4 × coverage + 0.6 × avg_issue_score − 0.1 × false_positive_rate`
 Issues are scored on **keyword accuracy** (50%) and **severity matching** (50%).
 
 ### Security Audit
+
 Score = `avg(per_issue_score)` where each issue = `0.7 × severity_accuracy + 0.3 × keyword_coverage`.
 Severity accuracy is distance-weighted: misclassifying a **CRITICAL** issue as **LOW** incurs a major penalty.
 
 ### Architectural Review
+
 Score = `0.6 × detection_rate + 0.2 × verdict_accuracy + 0.2 × detail_quality`.
 Detail quality rewards technical explanations that provide actionable developer feedback.
 
 ### 🛑 Noise Budget
+
 Every episode permits **5 false positive credits**. Flagging non-existent code paths spends one credit. Reaching zero terminates the episode immediately to prevent agent hallucination loops.
 
 ---
 
 ## 🔌 API Reference
 
-| Method | Endpoint | Auth | Description |
-|:-------|:---------|:-----|:------------|
-| `POST` | `/reset` | Optional | Start a new evaluation episode |
-| `POST` | `/step/{id}` | Optional | Submit a review action (flag_issue, approve) |
-| `GET` | `/result/{id}` | Optional | Retrieve final scores and logs for an episode |
-| `GET` | `/leaderboard` | None | Paginated performance rankings |
-| `POST` | `/submit` | Optional | Persist an episode result to the leaderboard |
-| `GET` | `/stats` | None | Aggregate statistics across all agents |
-| `GET` | `/episodes/{id}/replay` | Optional | Full event-by-event history replay |
-| `GET` | `/dashboard` | None | Interactive Real-time Dashboard |
-| `GET` | `/health` | None | System status and health check |
+| Method | Endpoint                | Auth     | Description                                   |
+| :----- | :---------------------- | :------- | :-------------------------------------------- |
+| `POST` | `/reset`                | Optional | Start a new evaluation episode                |
+| `POST` | `/step/{id}`            | Optional | Submit a review action (flag_issue, approve)  |
+| `GET`  | `/result/{id}`          | Optional | Retrieve final scores and logs for an episode |
+| `GET`  | `/leaderboard`          | None     | Paginated performance rankings                |
+| `POST` | `/submit`               | Optional | Persist an episode result to the leaderboard  |
+| `GET`  | `/stats`                | None     | Aggregate statistics across all agents        |
+| `GET`  | `/episodes/{id}/replay` | Optional | Full event-by-event history replay            |
+| `GET`  | `/dashboard`            | None     | Interactive Real-time Dashboard               |
+| `GET`  | `/health`               | None     | System status and health check                |
 
 Authentication is disabled by default. Set `API_KEY_ENABLED=true` in `.env` for production parity.
 
@@ -88,17 +92,20 @@ Authentication is disabled by default. Set `API_KEY_ENABLED=true` in `.env` for 
 ## 🐳 Running with Docker
 
 ### Production Mode
+
 ```bash
 docker compose up -d
 # View logs: docker compose logs -f
 ```
 
 ### Direct Pull
+
 ```bash
 docker run -p 7860:7860 ghcr.io/ArshVermaGit/open-ev-code-handler:latest
 ```
 
 ### Automated Testing
+
 ```bash
 docker compose -f docker-compose.test.yml up
 ```
@@ -108,11 +115,13 @@ docker compose -f docker-compose.test.yml up
 ## 🤖 Baseline Agent & Evaluation
 
 ### Single Scenario Trial
+
 ```bash
 python scripts/baseline.py --task bug_detection --seed 3 --verbose
 ```
 
 ### Full Benchmark (All 30 Scenarios)
+
 ```bash
 # Keyword-based baseline
 python scripts/evaluate.py --agent keyword --output results.json
@@ -147,7 +156,7 @@ while not done:
         "severity": "critical",
         "category": "security"
     }
-    
+
     result = requests.post(f"{API}/step/{episode_id}", json=action).json()
     done = result["done"]
 
@@ -196,9 +205,17 @@ pylint codelens_env/ app.py
 PYTHONPATH=. python scripts/validate.py
 ```
 
+## 👥 Authors & Maintainers
+
+CodeLens is authored and maintained by:
+
+- **Arsh Verma** — [GitHub](https://github.com/ArshVermaGit)
+- **Divyansh Rawat** — [GitHub](https://github.com/DsThakurRawat)
+
 ---
 
 ## 📄 Contributing & License
+
 Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for details on authoring new scenarios and submission standards.
 
 This project is licensed under the **[MIT License](LICENSE)**.

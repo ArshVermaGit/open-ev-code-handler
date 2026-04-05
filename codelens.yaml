@@ -1,5 +1,6 @@
 version: "2.0"
 name: "agentorg-codereview"
+owners: ["Arsh Verma", "Divyansh Rawat"]
 description: >
   AI Senior Code Reviewer evaluation environment for CodeLens.
   Benchmarks agents on 30 synthetic pull requests across Bug Detection,

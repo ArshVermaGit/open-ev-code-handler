@@ -1,7 +1,8 @@
 {
   "name": "codelens-dashboard",
+  "version": "2.0.0",
   "private": true,
-  "version": "0.1.0",
+  "author": "Arsh Verma, Divyansh Rawat",
   "type": "module",
   "scripts": {
     "dev": "vite",

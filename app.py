@@ -64,7 +64,7 @@ app = FastAPI(
         "Trains agents to detect bugs, security vulnerabilities, and architectural issues "
         "in realistic Python PRs."
     ),
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -169,7 +169,7 @@ async def http_exception_handler(request, exc):
 def health_check():
     return {
         "status": "ok",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "env_ready": True,
         "env": settings.app_env,
         "active_episodes": len(episodes),
