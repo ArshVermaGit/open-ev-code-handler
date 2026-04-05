@@ -83,6 +83,7 @@ jobs:
           context: .
           target: production
           push: false
+          load: true
           tags: codelens-env:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
