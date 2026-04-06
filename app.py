@@ -193,6 +193,16 @@ async def http_exception_handler(request, exc):
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+@app.get("/", include_in_schema=False)
+def root():
+    """Absolute root ping handler for infrastructure readiness checks."""
+    return {
+        "status": "ready",
+        "message": "CodeLens API is operational.",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 @app.get("/health")
 def health_check():
     return {

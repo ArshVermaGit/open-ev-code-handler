@@ -10,8 +10,8 @@ build/
 *.egg
 MANIFEST
 
-# Node.js / Dashboard (Exclude sources, only keep builds)
-node_modules/
+# Dashboard Build (Must be built inside Docker to avoid local skew)
+static/dashboard/
 dashboard/node_modules/
 dashboard/src/
 dashboard/public/

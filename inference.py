@@ -2,12 +2,12 @@
 CodeLens Inference Script — CodeLens Environment
 ==========================================================
 Required env vars:
-  API_BASE_URL  — OpenAI-compatible base URL  (e.g. https://api.openai.com/v1)
-  MODEL_NAME    — Model identifier             (e.g. gpt-4o, gpt-3.5-turbo)
-  HF_TOKEN      — Hugging Face token (used as api_key for OpenAI client)
-  ENV_URL       — CodeLens env URL           (default: http://localhost:7860)
+  API_BASE_URL   — OpenAI-compatible base URL  (e.g. https://api.openai.com/v1)
+  MODEL_NAME     — Model identifier             (e.g. gpt-4o, gpt-3.5-turbo)
+  HF_TOKEN       — API key (Hugging Face / OpenAI compatible)
+  ENV_URL        — CodeLens env URL           (default: http://localhost:7860)
 
-Output format (stdout, per CodeLens spec):
+Output format (stdout, per OpenEnv spec):
   [START] task=<task_id> env=<env_url> model=<model>
   [STEP] step=<n> action=<str> reward=<float> done=<bool> error=<str|None>
   [END] success=<bool> steps=<int> score=<float> rewards=<list>
@@ -20,10 +20,11 @@ import time
 import requests
 from openai import OpenAI
 
-# ── Environment Variables (exact names required by CodeLens spec) ──────────────
+# ── Environment Variables (exact names required by hackathon) ──────────────────
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME   = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
-HF_TOKEN     = os.environ.get("HF_TOKEN", "dummy")
+# Dual support: HF_TOKEN (mandatory instructions) or OPENAI_API_KEY (functional reqs)
+HF_TOKEN     = os.environ.get("HF_TOKEN") or os.environ.get("OPENAI_API_KEY", "dummy")
 ENV_URL      = os.environ.get("ENV_URL", "http://localhost:7860")
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ def log_step(step: int, action: str, reward: float, done: bool, error):
 
 def log_end(success: bool, steps: int, score: float, rewards: list):
     success_str = "true" if success else "false"
-    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    rewards_str = "[" + ",".join([f"{r:.2f}" for r in rewards]) + "]"
     print(
         f"[END] success={success_str} steps={steps} score={score:.2f} "
         f"rewards={rewards_str}",

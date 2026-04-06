@@ -113,6 +113,15 @@ class Observation(BaseModel):
     issues_flagged: int = 0
     done: bool = False
 
+class Reward(BaseModel):
+    """
+    Typed reward signal returned at each step (OpenEnv spec).
+    All values are normalized in the 0.0 – 1.0 range.
+    """
+    value: float            # 0.0 – 1.0 normalised score
+    reason: str = ""        # human-readable explanation
+    is_terminal: bool = False  # True on the final step
+
 class ResetResult(BaseModel):
     task_id: TaskId
     seed: int
@@ -122,6 +131,7 @@ class ResetResult(BaseModel):
 class StepResult(BaseModel):
     observation: Observation
     reward: float
+    reward_info: Reward     # typed Reward model (OpenEnv spec)
     done: bool
     info: dict = {}
 
