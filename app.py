@@ -76,10 +76,9 @@ app = FastAPI(
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-# 1. Trusted Host (Prevent Host-header injection)
 app.add_middleware(
     TrustedHostMiddleware, 
-    allowed_hosts=["*"] if settings.app_env in ("development", "test") else [f"localhost", "127.0.0.1", "*.github.io", "testserver"] 
+    allowed_hosts=["*"] if settings.app_env in ("development", "test") else ["localhost", "127.0.0.1", "*.hf.space", "huggingface.co"] 
 )
 
 # 2. Proxy Headers (Support Docker/Reverse-proxy)
@@ -88,7 +87,7 @@ app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 # 3. CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.app_env == "development" else [f"http://localhost:{settings.app_port}"],
+    allow_origins=["*"] if settings.app_env == "development" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -99,10 +98,18 @@ app.add_middleware(
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:;"
+    # Added frame-ancestors to allow Hugging Face to embed the space
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self' ws: wss:; "
+        "frame-ancestors 'self' https://*.huggingface.co https://huggingface.co;"
+    )
     return response
 
 # 5. Rate Limiting

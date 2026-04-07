@@ -20,12 +20,12 @@ import time
 import requests
 from openai import OpenAI
 
-# ── Environment Variables (exact names required by hackathon) ──────────────────
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME   = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
-# Dual support: HF_TOKEN (mandatory instructions) or OPENAI_API_KEY (functional reqs)
-HF_TOKEN     = os.environ.get("HF_TOKEN") or os.environ.get("OPENAI_API_KEY", "dummy")
-ENV_URL      = os.environ.get("ENV_URL", "http://localhost:7860")
+# ── Environment Variables (strictly following OpenEnv checklist) ────────────────
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
+HF_TOKEN     = os.getenv("HF_TOKEN")
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
+ENV_URL      = os.getenv("ENV_URL", "http://localhost:7860")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 TASKS             = ["bug_detection", "security_audit", "architectural_review"]
@@ -42,7 +42,7 @@ def log_start(task: str, env: str, model: str):
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
 def log_step(step: int, action: str, reward: float, done: bool, error):
-    error_str = str(error) if error else "null"
+    error_str = str(error) if error else "None"
     done_str = "true" if done else "false"
     print(
         f"[STEP] step={step} action={action} reward={reward:.2f} "
@@ -198,8 +198,7 @@ def sanitize_action(action_dict: dict, task_id: str) -> dict:
 
 def run_episode(task_id: str, seed: int) -> dict:
     """Run a single episode. Returns {score, steps, success, rewards}."""
-    benchmark = os.environ.get("BENCHMARK", "codelens")
-    log_start(task_id, benchmark, MODEL_NAME)
+    log_start(task_id, ENV_URL, MODEL_NAME)
 
     # ── Reset ──────────────────────────────────────────────────────────────
     try:
@@ -288,43 +287,20 @@ def run_episode(task_id: str, seed: int) -> dict:
 
 
 def main():
-    """Run all tasks across multiple seeds and print a summary."""
-    print("=" * 60, flush=True)
-    print("CodeLens Baseline", flush=True)
-    print(f"Model:  {MODEL_NAME}", flush=True)
-    print(f"EnvURL: {ENV_URL}", flush=True)
-    print("=" * 60, flush=True)
+    """Run all tasks across multiple seeds."""
 
     all_results = []
 
     for task_id in TASKS:
         task_scores = []
         for seed in SEEDS:
-            print(f"\n--- Task: {task_id} | Seed: {seed} ---", flush=True)
             result = run_episode(task_id, seed)
             all_results.append(result)
             task_scores.append(result["score"])
 
         avg_score = sum(task_scores) / len(task_scores) if task_scores else 0.0
-        print(f"\n[SUMMARY] task={task_id} avg_score={avg_score:.4f} seeds={SEEDS}", flush=True)
-
-    # ── Overall baseline table ─────────────────────────────────────────────
-    print("\n" + "=" * 60, flush=True)
-    print("BASELINE RESULTS", flush=True)
-    print("=" * 60, flush=True)
-    print(f"{'Task':<30} {'Avg Score':>10} {'Success Rate':>14}", flush=True)
-    print("-" * 56, flush=True)
-
-    for task_id in TASKS:
-        task_results = [r for r in all_results if r["task_id"] == task_id]
-        avg   = sum(r["score"] for r in task_results) / len(task_results)
-        succ  = sum(1 for r in task_results if r["success"]) / len(task_results)
-        print(f"{task_id:<30} {avg:>10.4f} {succ*100:>13.1f}%", flush=True)
 
     overall = sum(r["score"] for r in all_results) / len(all_results)
-    print("-" * 56, flush=True)
-    print(f"{'OVERALL':<30} {overall:>10.4f}", flush=True)
-
     return 0
 
 
