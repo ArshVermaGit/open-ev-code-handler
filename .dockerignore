@@ -10,15 +10,9 @@ build/
 *.egg
 MANIFEST
 
-# Node.js / Dashboard (Exclude sources, only keep builds)
-node_modules/
+# Dashboard Build (Keep node_modules out of context, but allow source for builder)
+static/dashboard/
 dashboard/node_modules/
-dashboard/src/
-dashboard/public/
-dashboard/tests/
-dashboard/*.json
-dashboard/*.config.js
-dashboard/*.config.ts
 
 # Virtual Environment
 venv/

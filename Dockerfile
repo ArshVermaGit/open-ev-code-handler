@@ -1,20 +1,31 @@
-# ── Stage 1: Builder ──────────────────────────────────────────
-FROM python:3.11-slim AS builder
+# ── Stage 1: Frontend Builder ─────────────────────────────────
+FROM node:20-slim AS frontend-builder
 
-WORKDIR /build
+WORKDIR /src/dashboard
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+COPY dashboard/package*.json ./
+RUN npm install
 
-# Install Python dependencies into /build/venv
+# Copy source and build (vite.config.ts outputs to ../static/dashboard)
+COPY dashboard/ .
+RUN npm run build
+
+# ── Stage 2: Python Builder ───────────────────────────────────
+FROM python:3.11-slim AS python-builder
+
+WORKDIR /build-python
+
+# Environment setup
+WORKDIR /app
+RUN python -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Install dependencies in venv
 COPY requirements.txt .
-RUN python -m venv /build/venv \
-    && /build/venv/bin/pip install --upgrade pip \
-    && /build/venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# ── Stage 2: Production ───────────────────────────────────────
+# ── Stage 3: Production ───────────────────────────────────────
 FROM python:3.11-slim AS production
 
 # Security: run as non-root user
@@ -27,8 +38,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Use virtualenv binaries
+ENV PATH="/app/venv/bin:$PATH"
+ENV PYTHONPATH="/app"
+
 # Copy virtualenv from builder
-COPY --from=builder /build/venv /app/venv
+COPY --from=python-builder /app/venv /app/venv
+
+# Copy dashboard build from frontend-builder
+# (Vite config builds to ../static/dashboard relative to /src/dashboard)
+COPY --chown=appuser:appuser --from=frontend-builder /src/static/dashboard /app/static/dashboard
 
 # Copy application code
 COPY --chown=appuser:appuser . .
@@ -49,4 +68,5 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:7860/health || exit 1
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]
+# Run the application using python -m for maximum portability
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]

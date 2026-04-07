@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: "/dashboard/",
+  base: "./",
   build: {
     outDir: "../static/dashboard",   // FastAPI serves this
     emptyOutDir: true,

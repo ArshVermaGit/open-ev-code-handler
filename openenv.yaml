@@ -9,6 +9,9 @@ description: >
 entry_point: "app:app"
 dashboard: "/dashboard"
 api_docs: "/docs"
+license: "MIT"
+tags: ["code-review", "agentic-eval", "security-audit", "bug-detection"]
+contact: "Arsh Verma <arsh@example.com>"
 
 tasks:
   - id: "bug_detection"

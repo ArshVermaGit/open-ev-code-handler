@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Set
 from codelens_env.models import (
     TaskId, Action, Observation, StepResult, ResetResult,
-    ActionType, ActionRecord, EpisodeResult, Severity, GroundTruthIssue
+    ActionType, ActionRecord, EpisodeResult, Severity, GroundTruthIssue, Reward
 )
 from codelens_env.scenarios import get_scenario
 from codelens_env.graders.bug_grader import grade_bug_detection
@@ -61,6 +61,7 @@ class CodeLensEnv:
 
         self.step_count += 1
         reward = 0.0
+        match = None  # Track matched ground truth issue (if any)
         
         # Determine terminal state and reward
         if action.action_type in (ActionType.APPROVE, ActionType.REQUEST_CHANGES):
@@ -100,6 +101,21 @@ class CodeLensEnv:
             self.done = True
             self.terminated_reason = "max_steps"
 
+        # Build reward reason
+        if action.action_type in (ActionType.APPROVE, ActionType.REQUEST_CHANGES):
+            reward_reason = "Terminal action submitted"
+        elif action.action_type == ActionType.FLAG_ISSUE:
+            if match and match.id in self.matched_issue_ids and reward > 0:
+                reward_reason = f"Correctly identified issue: {match.description[:60]}"
+            elif match and reward < 0:
+                reward_reason = "Duplicate issue flagged"
+            elif not match:
+                reward_reason = "False positive: no matching ground truth issue"
+            else:
+                reward_reason = f"Matched issue {match.id}" if match else "No match"
+        else:
+            reward_reason = "Non-scoring action"
+
         # Record action
         record = ActionRecord(
             action_type=action.action_type,
@@ -117,6 +133,11 @@ class CodeLensEnv:
         return StepResult(
             observation=self._build_observation(),
             reward=float(reward),
+            reward_info=Reward(
+                value=float(max(0.0, reward)),
+                reason=reward_reason,
+                is_terminal=self.done
+            ),
             done=self.done,
             info={"terminated_reason": self.terminated_reason}
         )
