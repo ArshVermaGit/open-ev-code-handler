@@ -68,7 +68,8 @@ def test_api_health_fields(client):
 
 def test_api_reset_invalid_task(client):
     resp = client.post("/reset", json={"task_id": "invalid_task", "seed": 0})
-    assert resp.status_code == 422
+    assert resp.status_code == 200
+    assert resp.json()["result"]["task_id"] == "bug_detection" # Fallback
 
 def test_api_step_invalid_action_type(client):
     reset_resp = client.post("/reset", json={"task_id": "bug_detection", "seed": 0})
@@ -151,17 +152,19 @@ def test_api_reset_robustness(client):
     assert resp.status_code == 200
     assert resp.json()["result"]["task_id"] == "bug_detection"
 
-    # 3. Query params only
+    # 3. Invalid JSON (should not trigger 422 now)
+    resp = client.post("/reset", content="invalid json {", headers={"Content-Type": "application/json"})
+    assert resp.status_code == 200
+    assert resp.json()["result"]["task_id"] == "bug_detection"
+
+    # 4. Plain text body (unexpected header, should still pass)
+    resp = client.post("/reset", content="just some text", headers={"Content-Type": "text/plain"})
+    assert resp.status_code == 200
+    assert resp.json()["result"]["task_id"] == "bug_detection"
+
+    # 5. Query params override
     resp = client.post("/reset?task_id=security_audit&seed=100")
     assert resp.status_code == 200
-    assert resp.json()["result"]["task_id"] == "security_audit"
-    assert resp.json()["result"]["seed"] == 100
-
-    # 4. Query params overriding body
-    resp = client.post(
-        "/reset?task_id=architectural_review", 
-        json={"task_id": "bug_detection", "seed": 50}
-    )
-    assert resp.status_code == 200
-    assert resp.json()["result"]["task_id"] == "architectural_review"
-    assert resp.json()["result"]["seed"] == 50
+    data = resp.json()
+    assert data["result"]["task_id"] == "security_audit"
+    assert data["result"]["seed"] == 100

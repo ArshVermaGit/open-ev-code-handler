@@ -216,23 +216,32 @@ def health_check():
 
 @app.post("/reset", response_model=ResetResponse)
 @limiter.limit(f"{settings.rate_limit_per_minute}/minute")
-def reset_env(
+async def reset_env(
     request: Request,
-    req: Optional[ResetRequest] = Body(None),
     task_id: Optional[TaskId] = Query(None),
     seed: Optional[int] = Query(None),
     _: None = Depends(verify_api_key)
 ):
-    # Determine task_id: Body (if present) > Query params > Default
+    # Determine task_id and seed with manual fallback strategy
     final_task_id = TaskId.BUG_DETECTION
     final_seed = 42
 
-    if req:
-        if req.task_id:
-            final_task_id = req.task_id
-        final_seed = req.seed
+    # 1. Try to extract from body manually (handles empty/malformed bodies)
+    try:
+        body = await request.json()
+        if body and isinstance(body, dict):
+            if body.get("task_id"):
+                try:
+                    final_task_id = TaskId(body["task_id"])
+                except ValueError:
+                    pass
+            if body.get("seed") is not None:
+                final_seed = int(body["seed"])
+    except Exception:
+        # Ignore body parsing errors (empty/malformed) and fall back
+        pass
     
-    # Query parameters override body if provided explicitly
+    # 2. Query parameters override body if provided explicitly
     if task_id:
         final_task_id = task_id
     if seed is not None:
@@ -244,7 +253,7 @@ def reset_env(
     episodes[episode_id] = env
     episode_timestamps[episode_id] = datetime.now(timezone.utc)
     
-    logger.info(f"Reset environment: task={final_task_id.value}, seed={final_seed}, id={episode_id}")
+    logger.info(f"Reset environment (Robust): task={final_task_id.value}, seed={final_seed}, id={episode_id}")
     return ResetResponse(episode_id=episode_id, result=result)
 
 @app.post("/step/{episode_id}", response_model=StepResult)
